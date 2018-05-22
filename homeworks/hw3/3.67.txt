@@ -1,0 +1,48 @@
+
+Sidharth Bambah UID:904787435
+
+A.
+	Topmost addresses are highest
+	
+	  .              rsp + 104
+	  .
+	  .
+	  .
+	  .
+	  .
+	  z              rsp + 24
+	s.p = &z         rsp + 16
+	s.a[1] = y       rsp + 8
+	s.a[0] = x       rsp
+B.
+	Eval passes %rdi into process. This register holds the address at
+	%rsp + 64, which is actually the start of the structure r.
+C.
+	The rsp pointer is decremented by 8 to hold the return location. Thus,
+	the function process can see element s.a[0] at rsp + 8, s.a[1] at rsp + 16,
+	and s.p at rsp + 24. This is because all longs and pointers to longs take up
+	8 bytes of space.
+D.
+	The function process sets the fields of r by saving the accessed values into 
+	registers and these are copied into rdi at various offsets corresponding to 
+	the locations of the member variables.
+E.
+	  .              rsp + 104
+	  .
+	  .
+	 r.q = z         rsp + 80
+	 r.u[1] = x      rsp + 72
+	 r.u[0] = y      rsp + 64
+	  .
+	  .
+	  .
+	  z              rsp + 24
+	s.p = &z         rsp + 16
+	s.a[1] = y       rsp + 8
+	s.a[0] = x       rsp
+	return addr    
+F.
+	Structures are both passed and returned from functions in
+	the form of addresses in memory. The member variables of the structure
+	are accessed by ofsetting the address that is passed into the function
+	to the offset of the required member variable.

@@ -1,0 +1,42 @@
+
+Sidharth Bambah UID:904787435
+
+Given Code:
+/* Create some arbitrary values */
+int x = random();
+int y = random();
+int z = random();
+/* Convert to double */
+double dx = (double) x;
+double dy = (double) y;
+double dz = (double) z;
+
+
+A.
+(float) x == (float) dx
+This expression will ALWAYS yield 1 because doubles can represent integers
+with the same precision. Thus, there is no loss of data.
+B.
+dx - dy == (double) (x - y)
+This expression will NOT always yield 1. For example, if x is the maximum integer,
+INT_MAX, and y is the minimum integer, INT_MIN, the LHS will be evaluated properly
+because the numbers are converted to doubles and will not deal with the overflow condition.
+However, the RHS will overflow and that overflow value will then be converted into a double
+yielding the incorrect mathematical answer. In order to properly evaluate this expression, the
+-fwrapv flag is important.
+C.
+(dx + dy) + dz == dx + (dy + dz)
+This expression will ALWAYS yield 1. This is because no integers can create a value large
+enough to cause a double to lose its precision. 
+D.
+(dx * dy) * dz == dx * (dy * dz)
+This expression will NOT always yield one. For example if dx and dy multiplied yields a NaN, multiplying
+by dz will always result in a NaN. However, if all of the values are the same and dy multiplied with dz first
+yields a value smaller than a NaN, then that value multiplied by x may not yield a NaN. Thus, the order of 
+multiplication matters. If dx and dy are INT_MAX and INT_MAX - 1 and if dz is INT_MAX - 2, this expression will 
+result in 0.
+E.
+dx / dx == dz / dz
+This expression will NOT always give 1. For example if dx = 0 and dz is any
+other number, the expression will give 0. Thus, the left hand side will become
+a NaN and a NaN compared to any value will always return 0.

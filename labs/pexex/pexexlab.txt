@@ -1,0 +1,60 @@
+
+Sidharth Bambah
+UID: 904 787 435
+
+
+// To make Trace
+
+gdb ~/eggert/bin64/bin/emacs-25.2
+
+I used this command to open the gdb debugger with the proper emacs-25
+executable file.
+
+(gdb) break Ftimes
+
+I set this breakpoint so that the debugger paused at the start of the Ftimes
+function.
+
+(gdb) set disassemble-next-line on
+
+This command was used to show the assembly language of each step in the program.
+
+(gdb) r -Q -batch -eval '(print (* 1250284240 -1844255039))'
+
+This command started the program with the given arguments and stopped immediately
+when the Ftimes function was called.
+
+(gdb) si
+
+I used this command to look at every assembly command that was executed by the program
+until the end of the Ftimes function.
+
+(gdb) info registers
+
+Whenever there was an assembly instruction that modified a register, I ran this command
+to look at the new value of the register and record it in my trace file.
+
+Initially, I tried to use the disas command and that showed all of the assembly language of
+the program, but it did not show me which commands were actually executed. Additionally, this does
+not show which jumps are actually made and what the values of the registers changed to.
+
+// To test overflow
+
+I copied the given function into a .c file. Then, I compiled that file three seperate times using the following
+commands.
+
+gcc -S -O2 -o test test.c
+gcc -S -O2 -fwrapv -o test1 test.c
+gcc -S -O2 -fsanitize=undefined -o test2 test.c
+
+Then, I used these assembly language files to compare the effects of the various
+different flags.
+
+//To answer last questions
+
+To access the source code, I ran the command 
+	cd ~eggert/src/emacs-25.2/src
+to get to the directory with all of the data files.
+
+In order to answer the first question, I looked at the lisp.h source file to see how
+Elisp stores numbers.

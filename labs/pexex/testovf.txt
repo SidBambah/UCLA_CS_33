@@ -1,0 +1,108 @@
+
+Sidharth Bambah
+UID: 904 787 435
+
+_Bool
+  testovf (long n)
+  {
+    return n + 9223372036854775807 < n;
+  }
+
+The code given above is compiled into assembly language files using the 
+following flags: -O2, -O2 -frwapv, -O2 -fsanitize=undefined
+
+1.
+The assembly language resulting from using the -O2 flag is given below:
+testovf:
+.LFB0:
+	.cfi_startproc
+	xorl	%eax, %eax
+	ret
+	.cfi_endproc
+
+The -O2 flag raises the level of optimization of the code to level 2.
+Because of the high level of optimization, the compiler ignores all overflow cases and
+assumes that n plus any number will always be false and just xor's with itself to return 
+0 immediately.
+
+2. The assembly language resulting from using the -O2 -fwrapv flags is given
+as:
+testovf:
+.LFB0:
+	.cfi_startproc
+	movabsq	$9223372036854775807, %rax
+	addq	%rdi, %rax
+	cmpq	%rax, %rdi
+	setg	%al
+	ret
+	.cfi_endproc
+
+The flag -fwrapv tells the compiler to always wrap even if there is an overflow.
+The length of the assembly language is roughly the same as the length when only the -O2
+flag is enabled, but it also deals with the overflow case and returns 1 because the wrap
+around during the overflow will yield a smaller number and that smaller number will be less
+than the initial number.
+
+3. The assembly language resulting from using the -O2 -fsanitize=undefined flags
+is given as:
+testovf:
+.LFB0:
+	.cfi_startproc
+	pushq	%rbp
+	.cfi_def_cfa_offset 16
+	.cfi_offset 6, -16
+	pushq	%rbx
+	.cfi_def_cfa_offset 24
+	.cfi_offset 3, -24
+	movabsq	$9223372036854775807, %rdx
+	movq	%rdi, %rbp
+	movq	%rdi, %rbx
+	subq	$8, %rsp
+	.cfi_def_cfa_offset 32
+	addq	%rdx, %rbp
+	jo	.L6
+.L2:
+	cmpq	%rbp, %rbx
+	setg	%al
+	addq	$8, %rsp
+	.cfi_remember_state
+	.cfi_def_cfa_offset 24
+	popq	%rbx
+	.cfi_def_cfa_offset 16
+	popq	%rbp
+	.cfi_def_cfa_offset 8
+	ret
+.L6:
+	.cfi_restore_state
+	movq	%rdi, %rsi
+	movl	$.Lubsan_data0, %edi
+	call	__ubsan_handle_add_overflow
+	jmp	.L2
+	.cfi_endproc
+.LFE0:
+	.size	testovf, .-testovf
+	.section	.rodata.str1.1,"aMS",@progbits,1
+.LC0:
+	.string	"test.c"
+	.data
+	.align 16
+	.type	.Lubsan_data0, @object
+	.size	.Lubsan_data0, 24
+.Lubsan_data0:
+	.quad	.LC0
+	.long	4
+	.long	14
+	.quad	.Lubsan_type0
+	.align 2
+	.type	.Lubsan_type0, @object
+	.size	.Lubsan_type0, 15
+.Lubsan_type0:
+	.value	0
+	.value	13
+	.string	"'long int'"
+	.ident	"GCC: (GNU) 6.3.0"
+	.section	.note.GNU-stack,"",@progbits
+
+This flag causes the program to jump to a separate function when an overflow is detected.
+If there is no overflow, the program executes normally. The addition of this overflow condition
+makes the assembly much longer than the other two instances.

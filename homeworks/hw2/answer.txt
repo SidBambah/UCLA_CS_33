@@ -1,0 +1,20 @@
+
+Sidharth Bambah UID:904787435
+
+3.60
+  A. 
+     x = %rdi    Register %r8 temporarily holds x.
+     n = %rsi, %rcx  N is moved to rcx in the beginning
+	 result = %rax
+	 mask = %rdx
+  B.
+     result = 0
+	 mask = 1
+  C.
+     mask != 0
+  D.
+     shifted left by (n & 0xFF)
+	 mask << (n & 0xFF)
+  E.
+     it is ored with x and mask
+	 result | (x & mask)

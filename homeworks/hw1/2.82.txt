@@ -1,0 +1,37 @@
+
+A. (x < y) == (-x > -y)
+	This conditional statement DOES NOT always yield 1. When x is INT_MIN, the conditional
+	results in 0. This is because its negation results in the same value.
+	
+B. ((x + y)<<4) + y - x == 17 * y + 15 * x
+	This conditional will always be true, meaning its result will always be one. Taking the left hand side
+	to be (x + y) * 2^4 + y - x = 16*x + 16 * y + y - x = 17 * y + 15 * x, it is evident that the left side
+	will always be equal to the right based on the essential laws of arithmetic.
+
+C. ~x + ~y + 1 == ~(x + y)
+	This statement will always yield 1. This can be proved by showing that the left hand side will always
+	equal the right side. It is known that ~x = -x - 1, thus the left hand side can be written as
+	-x - 1 - y - 1 + 1 = -x - y -1 = -(x + y) - 1 = ~(x + y). Thus, this conditional will always be true.
+
+D. (ux - uy) == -(unsigned)(y - x)
+	This will always return true, or 1 because the left hand side is unsigned arithmetic and the right hand
+	side is signed arithmetic casted to an unsigned value. But, the underlying bit pattern will remain the same
+	and this conditional will always be true.
+
+E. ((x >> 2) << 2) <= x
+	The left hand side of this conditional can be written as (x / 2 ^ 2) << 2 = x / 4 << 2 = 4 * 1/4 * x = x.
+	Obviously this holds true for every value of x. Thus this conditional will always return 1. Additionally, 
+	the right shift may cause a loss of some bits resulting in a smaller number; thus, this will always be true.
+
+F. x >> 1 == (ux >> 1) + (ux & (-1 << 31))
+	This conditional only seems to return 1 for the x value zero. However, for all other values, be it positive
+	or negative, this conditional returns 0.
+	
+
+G. x % 128 == (x & 127)
+	This expression only holds for non-negative values of x. If x is non-negative and nonzero,
+	the left hand side will evaluate to a nonzero number, which is treated as true, similarly, the
+	right hand side will be true and true is equal to true resulting in 1.
+	However, if x is a negative value, the left hand side will evaluate to true, but the right hand side
+	will be false resulting in 0.
+	A counter-example would be to choose x as -1.

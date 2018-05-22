@@ -1,0 +1,48 @@
+	.file	"phf.c"
+	.section	.rodata.str1.1,"aMS",@progbits,1
+.LC0:
+	.string	"REMOTE_ADDR"
+.LC1:
+	.string	"phf CGI probe from %s"
+	.section	.rodata.str1.8,"aMS",@progbits,1
+	.align 8
+.LC2:
+	.ascii	"Content-type: text/html\nStatus: 404/html\n"
+	.string	"\n<HTML><HEAD><TITLE>404 Not Found</TITLE></HEAD>\n<BODY><H2>404 Not Found</H2>\nThe requested object does not exist on this server.\nThe link you followed is either outdated, inaccurate,\nor the server has been instructed not to let you have it.\n</BODY></HTML>"
+	.section	.text.startup,"ax",@progbits
+	.p2align 4,,15
+	.globl	main
+	.type	main, @function
+main:
+.LFB2:
+	.cfi_startproc
+	pushq	%rbx
+	.cfi_def_cfa_offset 16
+	.cfi_offset 3, -16
+	movq	(%rsi), %rbx
+	movl	$47, %esi
+	movq	%rbx, %rdi
+	call	strrchr
+	leaq	1(%rax), %rdx
+	testq	%rax, %rax
+	movl	$9, %esi
+	cmovne	%rdx, %rbx
+	movl	$24, %edx
+	movq	%rbx, %rdi
+	call	openlog
+	movl	$.LC0, %edi
+	call	getenv
+	movl	$.LC1, %esi
+	movq	%rax, %rdx
+	movl	$2, %edi
+	xorl	%eax, %eax
+	call	syslog
+	movl	$.LC2, %edi
+	call	puts
+	xorl	%edi, %edi
+	call	exit
+	.cfi_endproc
+.LFE2:
+	.size	main, .-main
+	.ident	"GCC: (GNU) 6.3.0"
+	.section	.note.GNU-stack,"",@progbits

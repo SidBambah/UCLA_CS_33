@@ -1,0 +1,59 @@
+
+Sidharth Bambah
+UID: 904 787 435
+
+1.
+The instructions in the trace did not produce the correct mathematical result
+primarily because of the way that Elisp stores numbers. Elisp does not define the 
+types of variables at compile time. Rather, their type is determined at runtime.
+As is shown in the lisp.h source file, markers are used to denote the type of the 
+variable. Elisp shifts a 64 bit number to the right by 2 and adds a tag to those first
+two bits. In the trace, this shift is shown by the following comand: 
+547893	48 c1 ff 02		sar $0x2,%rdi547893	48 c1 ff 02		sar $0x2,%rdi
+Then, the computations are done and the number is shifted back. However, all of this shifting
+causes some information to be lost and the overflow is culminated by this command:
+547920	48 8d 04 ad 02 00 00 00	lea 0x2(,%rbp,4),%rax
+2.
+In the source code for Emacs, primarily in data.c, it can be seen that most-negative-fixnum is defined
+on line 3732 as:
+
+DEFVAR_LISP ("most-negative-fixnum", Vmost_negative_fixnum,
+               doc: /* The smallest value that is representable in a Lisp integer.  */);
+  Vmost_negative_fixnum = make_number (MOST_NEGATIVE_FIXNUM);
+  XSYMBOL (intern_c_string ("most-negative-fixnum"))->constant = 1;
+
+This source code references the variable MOST_NEGATIVE_FIXNUM, which can be found in lisp.h on line 831 and is defined
+as:
+
+#define MOST_NEGATIVE_FIXNUM (-1 - MOST_POSITIVE_FIXNUM)
+
+This references MOST_POSITIVE_FIXNUM which is defined in lisp.h on line 830 as:
+#define MOST_POSITIVE_FIXNUM (EMACS_INT_MAX >> INTTYPEBITS)
+
+In this case the variable INTTYPEBITS is essentially 2 because 2 bits are used as a
+marker to denote the type of variable. Thus, MOST_POSITIVE_FIXNUM = (2^63 - 1) >> 2 = 2305843009213693951.
+
+Using this, MOST_NEGATIVE_FIXNUM = -1 - MOST_POSITIVE_FIXNUM = -1 - 2305843009213693951 = -2305843009213693952
+3.
+The value of most-positive-fixnum is essentially 0x7FFFFFFFFFFFFFFF which yields a vector of two ones followed by zeros
+and ending with a final 1. Lisp then clears the first two bits and adds its own marker. Thus, there is only one set bit, which
+yields a value of 1.
+4.
+If the -fwrapv flag is used, there will be no worry of getting either a runtime or compilation time overflow error, as the value will
+just wrap around if it overflows. However, some of the results may not be mathematically correct if there is an overflow that is not detected.
+5.
+When running emacs in gdb with the given arguments using the following lines:
+gdb ~eggert/bin64/bin/emacs-25.2
+(gdb) r -Q -batch -eval '(print (format-time-string "%Y-%m-%d %H:%M:%S %Z" nil (concat (make-string 1000 ?X) "0")))'
+
+The output of the backtrace is:
+Program received signal SIGSEGV, Segmentation fault.
+0x00007ffff173949b in __strcpy_sse2_unaligned () from /lib64/libc.so.6
+
+By running 
+(gdb) disas 0x00007ffff173949b
+
+This results in the dump of the assembler code for the function __strcpy_sse2_unaligned.
+
+The resulting position of the assembly language line where the function breaks is given as:
+0x00007ffff173949b <+411>:   movdqu %xmm7,-0x10(%rdi)

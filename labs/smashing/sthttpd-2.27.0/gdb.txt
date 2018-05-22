@@ -1,0 +1,11 @@
+Starting program: /w/home.14/ee/ugrad/bambah/Desktop/smashing/sthttpd-2.27.0/src/thttpd-no -p 12438 -D -C exploit.txt
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib64/libthread_db.so.1".
+
+Breakpoint 1, read_config (filename=0x7fffffffe5a2 "exploit.txt")
+    at thttpd.c:1000
+1000	    {
+$1 = (char (*)[100]) 0x7fffffffcf50
+rsp            0x7fffffffcfe8	0x7fffffffcfe8
+esp            0xffffcfe8	-12312
+rsp            0x7fffffffcfe8	0x7fffffffcfe8

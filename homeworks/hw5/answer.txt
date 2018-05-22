@@ -1,0 +1,17 @@
+
+Sidharth Bambah UID:904787435
+
+12.18.
+
+	A. Unsafe. This trajectory becomes unsafe as soon as it goes to L1 after H1.
+	B. Safe. This trajectory is safe, but runs on the edge of the unsafe region between 
+		S1 and L2.
+	C. Unsafe. This trajector goes into the unsafe region after it passes H2 and goes to
+		L2
+
+12.24.
+
+	In order for a function to be reentrant it must not reference any shared data when it is
+	called by multiple threads. Many of the Rio functions are passed a buffer and local stack variables; 
+	as long as this buffer is not shared between the functions they are considered to be implicitly reenterant.
+	However, if the buffer is shared between the functions they will automatically become non reentrant.

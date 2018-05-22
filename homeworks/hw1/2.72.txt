@@ -1,0 +1,13 @@
+
+A.
+	The sizeof operator always returns a value of type size_t. This type is
+	defined to be an unsigned type. The command maxbytes - sizeof(val) will 
+	undergo unsigned arithmetic and will never be less than zero. Thus, this
+	conditional will always be true and the value will always be written into
+	the buffer.
+
+B.
+	This conditional can be rewritten with the assumption that maxbytes will always
+	be greater than zero. Thus, when it is cast to unsigned, the two's complement does
+	not change.
+	(maxbytes >= sizeof(val))
